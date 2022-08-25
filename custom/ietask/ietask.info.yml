@@ -1,0 +1,5 @@
+name: IE Task
+type: module
+description: IE AbuseIPDB Technical Task
+package: CustomModules
+core_version_requirement: ^8.8.0 || ^9.0
