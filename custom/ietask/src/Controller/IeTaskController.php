@@ -152,7 +152,7 @@ class IeTaskController
 		<b>Approx time elapsed: <br>- Just over 5 hours</b>
 		<hr>		
 		<h1>Task Code</h1>
-		<p>Please find the code <a href="https://www.arsenal.com/" target="_new">here</a></p>';
+		<p>Please find the code <a href="https://github.com/mjcsapphire/IE-Technical-Task" target="_new">here</a></p>';
 
 	    return array(
 	      '#type' => 'markup',
