@@ -1,12 +1,7 @@
 <?php
 namespace Drupal\ietask\Controller;
-use Drupal\ietask\IpAddress; //Require IP address class
-
-if(!isset($_SESSION))
-{ 
-	ini_set('session.gc_maxlifetime', 999999);
-	session_start(); //Start session
-} 
+use Drupal\Core\Cache\CacheBackendInterface;
+use Symfony\Component\HttpFoundation\Response;
 
 class IeTaskController
 {
@@ -23,49 +18,42 @@ class IeTaskController
 		// ! TASK 3 - PREVENT CALL IF CHECKED WITHIN 24 HOURS !
 
 		//Check if IP address is cached:
+		$cacheId = 'cached_address:'.$ip_address;
+		$data = time();
+		$string = '';
 
-		//Check if IP addresses are stored in session variable
-		if(!isset($_SESSION['ipaddresses']) || empty($_SESSION['ipaddresses'])){				
-			$ip_array = array();
-		}else{
-			$ip_array = $_SESSION['ipaddresses'];
+		//If no data in cache
+		$cache = \Drupal::cache()->get($cacheId);
+		if ($cache == false) {
+		  	\Drupal::cache()->set($cacheId, $data);
+		  	$string .= ' Not stored in cache.';
+		}
+		else { //If data stored in cache
+		$string .= ' Stored in cache.';	 
 
-			//Loop through stored IP addresses
-			foreach ($ip_array as $key=>$row) {
+					//If IP is already blocked
+					if($cache->data == 'Blocked'){
 
-				$stored_address = $row->getAddress();
+						//Send 403 response
+						$response = new Response();
+					    $response->setContent('Blocked IP Address');
+					    $response->setMaxAge(10);
+					    $response->setStatusCode(403);
+					    return $response;
+					} 
 
-				//If current IP address is already stored
-				if($stored_address == $ip_address){
-
-					//Check if the search time has exceeded 24 hours
-					$searched_time = $row->getSearchedTime();
-					$searched_time_coverted = strtotime($searched_time);
-
-					if(time() < $searched_time_coverted + 86400){ //If less than 24 hours
+					if(time() < $cache->data + 86400){ //If less than 24 hours.
 
 						//Do not perform check / API call
 						$check_address = false;
+						$string .= ' API not called.';
 
-						//If the stored address is marked as blocked, throw a 403 error
-						if($row->getStatus() == 'Blocked'){
-
-							header('HTTP/1.0 403 Forbidden');
-							die('Error 403 Forbidden.'); 
-
-						}
-					}else{ //If 24 hours has elapsed
-
-						//Remove IP address from array and perform a new check
-						unset($ip_array[$key]);
-
-					}
-				}
-			}
+					}	
 		}
 
 		//If the current IP address needs to be checked
 		if($check_address){
+		$string .= ' API called.';
 
 		// ! TASK 1 - API CALL !
 
@@ -84,63 +72,36 @@ class IeTaskController
 
 			//Store results
 			$abuseScore = $geojson['data']['abuseConfidenceScore'];
-			$country = $geojson['data']['countryCode'];
-			$isp = $geojson['data']['isp'];
-			// print 'Abuse Score is = '.$abuseScore;
-
-			//Store results using IP class
-			$ipAddress = new IpAddress();
-			// $ipAddress = \Drupal::classResolver(IpAddress::class);
-			$ipAddress->setAddress($ip_address);
-			$ipAddress->setCountry($country);
-			$ipAddress->setIsp($isp);
-			$ipAddress->setSearchedTime(date("Y-m-d h:i:sa"));
-			$ipAddress->setAbuseScore($abuseScore);
 
 			//If the abuse score is greater than 50
 			if($abuseScore > 50){
 
 				// ! TASK 2 - BAD TRAFFIC RESPONSE !
 
-				//Mark IP as blocked and store in session
-				$ipAddress->setStatus('Blocked');
-				array_push($ip_array, $ipAddress);
-				$_SESSION['ipaddresses'] = $ip_array;
+				//Store IP as blocked
+				\Drupal::cache()->set($cacheId, 'Blocked');
 
-				//throw a 403 error and exit
-				header('HTTP/1.0 403 Forbidden');
-				die('Error 403 Forbidden.'); 
-
-			}else{ //If score is 50 or less
-
-				//Mark IP as allowed and store in session
-				$ipAddress->setStatus('Allowed');
-				array_push($ip_array, $ipAddress);
-				$_SESSION['ipaddresses'] = $ip_array;
+				//Send 403 response
+				$response = new Response();
+			    $response->setContent('Blocked IP Address');
+			    $response->setMaxAge(10);
+			    $response->setStatusCode(403);
+			    return $response;
 
 			}
+
+			//Store IP as not blocked
+			\Drupal::cache()->set($cacheId, $data);
 		}
 
 		//RENDER IP ADDRESS INFO 
 		$html = '
-		<h1>Checked IP Addresses</h1>
-		<table>
-		<tr>';
+		<h1>Current IP Address</h1>
+		<p>';
 
-		foreach($ip_array[0] as $key=>$value){
-			$html .= '<td>' . htmlspecialchars(strtoupper($key)) . '</td>';
-		}
-		$html .= '</tr>';
+		$html .= $ip_address . $string;
 
-		foreach( $ip_array as $key=>$value){
-			$html .= '<tr>';
-			foreach($value as $key2=>$value2){
-				$html .= '<td style="text-align:center">' . htmlspecialchars($value2) . '</td>';
-			}
-			$html .= '</tr>';
-		}
-
-		$html .= '</table>
+		$html .= '</p>
 		<hr>
 		<h1>Task Breakdown</h1>
 		<p>Comments: <br>I really enjoyed this task as it is the kind of coding that I like doing. I think the objectives have been achieved but I\'m not too sure if the solution is the most optimal. But I put that partly down to having zero knowledge of Drupal - perhaps there are some pre-build Drupal functions that I could\'ve leveraged to make life easier?!<br><br>I\'m not happy with my solution to the caching task as I don\'t think session variables are the way to go because the same IP address will be checked if the page is accessed via different browsers - which is not technically fulfilling the objective. I have not done server-side caching before so please excuse me if it is not the intended solution. Typically I would do client-side caching or use a database table to handle this. I would be keen to know how you would do the third bullet point.</p>
