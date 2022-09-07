@@ -1,0 +1,6 @@
+services:
+  ietaskupdated.event_subscriber:
+    class: Drupal\ietaskupdated\EventSubscriber\RedirectBadIpSubscriber
+    arguments: []
+    tags:
+      - {name: event_subscriber}

@@ -1,7 +1,0 @@
-ietask.content:
-  path: '/ietask_page'
-  defaults:
-    _controller: '\Drupal\ietask\Controller\IeTaskController::Ietask'
-    _title: 'IE Technical Task - Michael Clarke'
-  requirements:
-    _permission: 'access content'

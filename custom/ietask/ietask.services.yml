@@ -1,5 +1,0 @@
-# services:
-#   403ResponseSubscriber:
-#     class: Drupal\custom_events\EventSubscriber\403ResponseSubscriber
-#     tags:
-#       - { name: 'event_subscriber' }
