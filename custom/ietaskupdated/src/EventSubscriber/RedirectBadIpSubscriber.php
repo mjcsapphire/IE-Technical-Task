@@ -8,9 +8,6 @@ use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
-* Event subscriber subscribing to KernelEvents::REQUEST.
-*/
 class RedirectBadIpSubscriber implements EventSubscriberInterface {
 
   public function checkIPStatus(GetResponseEvent $event) {
@@ -98,7 +95,7 @@ class RedirectBadIpSubscriber implements EventSubscriberInterface {
 
     }
 
-  //Store IP as not blocked
+    //Store IP as not blocked
     \Drupal::cache()->set($cacheId, $data);
   }
 
