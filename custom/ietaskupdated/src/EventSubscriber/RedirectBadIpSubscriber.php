@@ -24,12 +24,15 @@ class RedirectBadIpSubscriber implements EventSubscriberInterface {
 
     //Check if IP address is cached:
     $cacheId = 'cached_address:'.$ip_address;
-    $data = time();
+    $data = time();    
+    $cache = \Drupal::cache()->get($cacheId);
 
     //If no data in cache
-    $cache = \Drupal::cache()->get($cacheId);
     if ($cache == false) {
+
+      //Store IP in cache with time
       \Drupal::cache()->set($cacheId, $data);
+
     }
     else { //If data stored in cache
 
